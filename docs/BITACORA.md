@@ -106,3 +106,92 @@ foreach ($c in 'git','py','python','mysql','code') { Get-Command $c -ErrorAction
 | `04-workbench-conectado.png` | Workbench conectado (Navigator/Schemas) | Desarrollo técnico (entorno) |
 | `05-servicio-mysql.png` | `Get-Service MySQL*` → Running | Desarrollo técnico (entorno) |
 | `06-github-perfil.png` | Perfil de GitHub `fcoronell` | Desarrollo técnico (entorno) |
+
+---
+
+## Paso 2 — Repositorio y proyecto Django
+
+- **Fecha de inicio:** 2026-10-17
+- **Responsable:** Fernando Coronell Molina
+
+### 2.1 Repositorio local
+
+```powershell
+git init
+git config --global core.autocrlf true   # saltos de línea consistentes en Windows
+git add .
+git commit -m "Inicio del proyecto: README, .gitignore, CLAUDE.md y bitácora del Paso 1"
+```
+- Se creó `.gitignore` (excluye `.venv/`, `.env`, `__pycache__/`, `*.pyc`, `db.sqlite3`, `staticfiles/`) y un `README.md` inicial.
+- Primer commit: `6d52cce`. Captura: `07-primer-commit.png`.
+
+### 2.2 Repositorio en GitHub
+
+- Repositorio público: https://github.com/fcoronell/festival-vallenato-votaciones (creado sin README/.gitignore/licencia para no chocar con los locales).
+```powershell
+git remote add origin https://github.com/fcoronell/festival-vallenato-votaciones.git
+git push -u origin main
+```
+- El primer push abrió el navegador (Git Credential Manager) para autorizar a Git en la cuenta de GitHub.
+
+### 2.3 Colaboradores
+
+- Pendiente: invitar a Sebastián, Javik y Dahiana cuando envíen sus usuarios de GitHub.
+
+### 2.4 Entorno virtual y dependencias
+
+```powershell
+py -3.13 -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install "Django>=5.2,<5.3" mysqlclient python-dotenv
+pip freeze > requirements.txt
+```
+- Instalado: Django 5.2.18, mysqlclient 2.3.0 (rueda precompilada para Windows), python-dotenv 1.2.4, más asgiref, sqlparse y tzdata.
+- Captura: `08-venv-dependencias.png`.
+
+### 2.5 Proyecto y aplicaciones Django
+
+```powershell
+django-admin startproject config .
+python manage.py startapp votaciones
+python manage.py startapp cuentas
+```
+- `config/`: configuración general del proyecto (`settings.py`, `urls.py`, `wsgi.py`, `asgi.py`).
+- `votaciones/`: ediciones, categorías, votaciones y opciones.
+- `cuentas/`: registro, inicio y cierre de sesión.
+- Se crearon también `templates/` y `static/css`, `static/img` (con `.gitkeep` para que Git guarde las carpetas vacías).
+
+### 2.6 Ajustes de `config/settings.py`
+
+- `SECRET_KEY`, `DEBUG` y `ALLOWED_HOSTS` se leen del archivo `.env` con `python-dotenv` (`load_dotenv`). La clave que Django escribió dentro de `settings.py` se eliminó y nunca se subió a Git; se generó una nueva solo en `.env`.
+- `.env.example` (sí se sube) lista las variables sin valores reales, incluidas las de MySQL para el Paso 3.
+- `INSTALLED_APPS`: se agregaron `votaciones` y `cuentas`.
+- `TEMPLATES['DIRS'] = [BASE_DIR / 'templates']`; `STATICFILES_DIRS = [BASE_DIR / 'static']`; `STATIC_ROOT = BASE_DIR / 'staticfiles'`.
+- `LANGUAGE_CODE = 'es-co'`, `TIME_ZONE = 'America/Bogota'`, `USE_TZ = True`.
+- Verificación: `python manage.py check` → "System check identified no issues"; `git check-ignore -v .env` confirma que `.env` está ignorado.
+
+### 2.7 Servidor de desarrollo
+
+```powershell
+python manage.py runserver
+```
+- http://127.0.0.1:8000 muestra la página de bienvenida de Django en español ("¡La instalación funcionó con éxito!").
+- El aviso "18 unapplied migrations" es normal: las migraciones se aplican en el Paso 3, ya conectados a MySQL.
+- Capturas: `09-runserver-consola.png`, `10-django-bienvenida.png`.
+
+### 2.8 Cierre del Paso 2
+
+- **Fecha de cierre:** 2026-10-18
+- Antes del commit se revisó con `git status` que no se incluyeran `.env`, `.venv/` ni `db.sqlite3`.
+```powershell
+git add .
+git commit -m "Paso 2: proyecto Django (config, apps votaciones y cuentas), settings con .env y bitácora"
+git push
+```
+
+### Problemas encontrados y solución (Paso 2)
+
+- **El primer `git push` desde una terminal no interactiva falló** ("terminal prompts disabled"). **Solución:** ejecutarlo en una terminal normal, donde Git Credential Manager pudo abrir el navegador para iniciar sesión.
+- **`.venv\Scripts\Activate.ps1` fue bloqueado**: "la ejecución de scripts está deshabilitada en este sistema" (PSSecurityException). Windows bloquea los scripts de PowerShell por defecto. **Solución:** `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, ejecutado por Fernando (solo afecta a su usuario y permite scripts locales). Captura: `08a-error-executionpolicy.png`.
+- **En la terminal de VS Code, `git` "no se reconoce como nombre de un cmdlet"** (CommandNotFoundException). VS Code estaba abierto desde antes de instalar Git, y Windows solo carga el PATH cuando un programa se abre. **Solución:** cerrar todas las ventanas de VS Code y volver a abrirlo; luego `git --version` responde normalmente. Captura: `10a-error-git-no-reconocido.png`.
